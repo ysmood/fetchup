@@ -4,45 +4,32 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 )
 
 type Fetchup struct {
-	URLs      []string
-	To        string
-	StripRoot bool
+	To   string
+	URLs []string
 
 	Logger          Logger
 	IdleConnTimeout time.Duration
 	MinReportSpan   time.Duration
 	HttpClient      *http.Client
-
-	Exists func(path string) bool
 }
 
-func New(us []string, to string) *Fetchup {
+func New(to string, us ...string) *Fetchup {
 	return &Fetchup{
+		To:              to,
 		URLs:            us,
-		To:              filepath.Join(CacheDir(), to),
 		Logger:          log.Default(),
 		IdleConnTimeout: 30 * time.Second,
 		MinReportSpan:   time.Second,
 		HttpClient:      http.DefaultClient,
-		Exists: func(path string) bool {
-			_, err := os.Stat(path)
-			return err == nil
-		},
 	}
 }
 
 func (fu *Fetchup) Fetch() error {
-	if fu.Exists(fu.To) {
-		return nil
-	}
-
 	u := fu.FastestURL()
 	return fu.Download(u)
 }

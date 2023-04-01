@@ -103,3 +103,30 @@ func CacheDir() string {
 		"linux":   filepath.Join(os.Getenv("HOME"), ".cache"),
 	}[runtime.GOOS])
 }
+
+// StripFirstDir removes the first dir but keep all its children.
+func StripFirstDir(dir string) error {
+	list, err := os.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	if len(list) != 1 {
+		return fmt.Errorf("expected only one dir in %s", dir)
+	}
+
+	root := filepath.Join(dir, list[0].Name())
+
+	children, err := os.ReadDir(root)
+	if err != nil {
+		return err
+	}
+
+	for _, child := range children {
+		err = os.Rename(filepath.Join(root, child.Name()), filepath.Join(dir, child.Name()))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

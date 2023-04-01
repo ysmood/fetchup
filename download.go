@@ -102,10 +102,8 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 	progress := NewProgress(r, size, fu.MinReportSpan, fu.Logger)
 
 	for _, f := range zr.File {
-		name := f.Name
-		if fu.StripRoot {
-			name = trimRoot(f.Name)
-		}
+		name := strings.ReplaceAll(f.Name, "\\", string(filepath.Separator))
+		name = strings.ReplaceAll(name, "/", string(filepath.Separator))
 		p := filepath.Join(fu.To, name)
 
 		if f.FileInfo().IsDir() {
@@ -153,11 +151,7 @@ func (fu *Fetchup) UnTar(r io.Reader) error {
 		}
 
 		info := hdr.FileInfo()
-		name := hdr.Name
-		if fu.StripRoot {
-			name = trimRoot(hdr.Name)
-		}
-		p := filepath.Join(fu.To, name)
+		p := filepath.Join(fu.To, hdr.Name)
 
 		if info.IsDir() {
 			err = os.Mkdir(p, info.Mode())
@@ -185,8 +179,4 @@ func (fu *Fetchup) UnTar(r io.Reader) error {
 	}
 
 	return nil
-}
-
-func trimRoot(path string) string {
-	return filepath.Join(filepath.SplitList(path)[1:]...)
 }
