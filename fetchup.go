@@ -12,20 +12,20 @@ type Fetchup struct {
 	To   string
 	URLs []string
 
-	Logger          Logger
-	IdleConnTimeout time.Duration
-	MinReportSpan   time.Duration
-	HttpClient      *http.Client
+	Logger        Logger
+	MinReportSpan time.Duration
+	HttpClient    *http.Client
 }
 
 func New(to string, us ...string) *Fetchup {
 	return &Fetchup{
-		To:              to,
-		URLs:            us,
-		Logger:          log.Default(),
-		IdleConnTimeout: 30 * time.Second,
-		MinReportSpan:   time.Second,
-		HttpClient:      http.DefaultClient,
+		To:            to,
+		URLs:          us,
+		Logger:        log.Default(),
+		MinReportSpan: time.Second,
+		HttpClient: &http.Client{
+			Transport: &UATransport{UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"},
+		},
 	}
 }
 
@@ -53,8 +53,6 @@ func (fu *Fetchup) FastestURL() (fastest string) {
 				return
 			}
 
-			req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'")
-
 			res, err := fu.HttpClient.Do(req)
 			if err != nil {
 				return
@@ -78,4 +76,15 @@ func (fu *Fetchup) FastestURL() (fastest string) {
 	wg.Wait()
 
 	return
+}
+
+type UATransport struct {
+	UA string
+}
+
+var _ http.RoundTripper = (*UATransport)(nil)
+
+func (t *UATransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", t.UA)
+	return http.DefaultTransport.RoundTrip(req)
 }
