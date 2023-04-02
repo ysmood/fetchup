@@ -21,12 +21,7 @@ func (fu *Fetchup) Downloader(u string) (io.Reader, func(), error) {
 		return nil, nil, err
 	}
 
-	res, err := (&http.Client{
-		Transport: &http.Transport{
-			DisableKeepAlives: true,
-			IdleConnTimeout:   fu.IdleConnTimeout,
-		},
-	}).Do(q)
+	res, err := fu.HttpClient.Do(q)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -94,7 +89,7 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 
 	size := 0
 	for _, f := range zr.File {
-		size += int(f.FileInfo().Size())
+		size += int(f.UncompressedSize64)
 	}
 
 	fu.Logger.Println(EventUnzip, fu.To)
@@ -102,9 +97,12 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 	progress := NewProgress(r, size, fu.MinReportSpan, fu.Logger)
 
 	for _, f := range zr.File {
-		name := strings.ReplaceAll(f.Name, "\\", string(filepath.Separator))
-		name = strings.ReplaceAll(name, "/", string(filepath.Separator))
-		p := filepath.Join(fu.To, name)
+		p := filepath.Join(fu.To, normalizePath(f.Name))
+
+		err := os.MkdirAll(filepath.Dir(p), 0755)
+		if err != nil {
+			return err
+		}
 
 		if f.FileInfo().IsDir() {
 			err := os.Mkdir(p, f.Mode())
@@ -117,6 +115,21 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 		r, err := f.Open()
 		if err != nil {
 			return err
+		}
+
+		if f.FileInfo().Mode().Type() == os.ModeSymlink {
+			buf := bytes.NewBuffer(nil)
+			_, err = io.Copy(io.MultiWriter(buf, progress), r)
+			if err != nil {
+				return err
+			}
+
+			err = os.Symlink(normalizePath(buf.String()), p)
+			if err != nil {
+				return err
+			}
+
+			continue
 		}
 
 		dst, err := os.OpenFile(p, os.O_RDWR|os.O_CREATE|os.O_TRUNC, f.Mode())
@@ -155,6 +168,15 @@ func (fu *Fetchup) UnTar(r io.Reader) error {
 
 		if info.IsDir() {
 			err = os.Mkdir(p, info.Mode())
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		if hdr.Linkname != "" {
+			err = os.Symlink(hdr.Linkname, p)
 			if err != nil {
 				return err
 			}

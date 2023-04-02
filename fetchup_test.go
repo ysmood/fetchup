@@ -1,12 +1,12 @@
 package fetchup_test
 
 import (
-	"fmt"
+	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/ysmood/fetchup"
+	"github.com/ysmood/got"
 )
 
 func TestUnTar(t *testing.T) {
@@ -17,30 +17,19 @@ func TestUnTar(t *testing.T) {
 	u := s.URL("/tar-gz/t.tar.gz")
 	d := getTmpDir(g)
 
-	fu := fetchup.Fetchup{
-		Logger: logger,
-		To:     d,
-	}
+	fu := fetchup.New(d)
+	fu.Logger = logger
 	g.E(fu.Download(u))
 
 	g.Eq(g.Read(filepath.Join(d, "a", "t.txt")).Bytes(), data)
-	g.Eq(logger.buf, fmt.Sprintf("Download: %s\nProgress: 19%%\nProgress: 39%%\nProgress: 60%%\nProgress: 80%%\nProgress: 100%%\nDownloaded: %s\n", u, d))
-}
-
-func TestMinReportSpan(t *testing.T) {
-	g, s, _ := setup(t)
-
-	logger := &bufLogger{}
-
-	u := s.URL("/tar-gz/t.tar.gz")
-	d := getTmpDir(g)
-	fu := fetchup.Fetchup{
-		Logger:        logger,
-		MinReportSpan: time.Second,
-		To:            d,
-	}
-	g.E(fu.Download(u))
-	g.Eq(logger.buf, fmt.Sprintf("Download: %s\nProgress: 19%%\nProgress: 100%%\nDownloaded: %s\n", u, d))
+	g.Eq(logger.buf, g.Render(`Download: {{.U}}
+Progress: 19%
+Progress: 100%
+Downloaded: {{.D}}
+`, struct {
+		U string
+		D string
+	}{u, d}).String())
 }
 
 func TestZip(t *testing.T) {
@@ -49,25 +38,27 @@ func TestZip(t *testing.T) {
 	logger := &bufLogger{}
 	u := s.URL("/zip/t.zip")
 	d := getTmpDir(g)
-	fu := fetchup.Fetchup{
-		Logger: logger,
-		To:     d,
-	}
+	fu := fetchup.New(d)
+	fu.Logger = logger
+	fu.MinReportSpan = 0
 	g.E(fu.Download(u))
 	g.Eq(g.Read(filepath.Join(d, "to", "file.txt")).Bytes(), data)
-	g.Eq(logger.buf, fmt.Sprintf(`Download: %s
-Progress: 02%%
-Progress: 05%%
-Progress: 10%%
-Progress: 19%%
-Progress: 40%%
-Progress: 80%%
-Progress: 100%%
-Unzip: %s
-99%%
-100%%
-Downloaded: %s
-`, u, d, d))
+	g.Eq(logger.buf, g.Render(`Download: {{.U}}
+Progress: 02%
+Progress: 05%
+Progress: 10%
+Progress: 19%
+Progress: 40%
+Progress: 80%
+Progress: 100%
+Unzip: {{.D}}
+99%
+100%
+Downloaded: {{.D}}
+`, struct {
+		U string
+		D string
+	}{u, d}).String())
 }
 
 func TestNew(t *testing.T) {
@@ -94,4 +85,30 @@ Downloaded: {{.D}}
 
 	g.E(fetchup.StripFirstDir(d))
 	g.True(g.PathExists(filepath.Join(d, "t.txt")))
+}
+
+func TestUnTarSymbolLink(t *testing.T) {
+	g := got.T(t)
+
+	g.E(os.RemoveAll("tmp/t/t"))
+	g.E(os.MkdirAll("tmp/t/t", 0755))
+
+	fu := fetchup.New("tmp/t/t", "")
+
+	g.E(fu.UnTar(g.Open(false, "features/test.tar")))
+
+	g.Eq(g.Read("tmp/t/t/test/b.txt").String(), "test test")
+}
+
+func TestUnZipSymbolLink(t *testing.T) {
+	g := got.T(t)
+
+	g.E(os.RemoveAll("tmp/t/t"))
+	g.E(os.MkdirAll("tmp/t/t", 0755))
+
+	fu := fetchup.New("tmp/t/t", "")
+
+	g.E(fu.UnZip(g.Open(false, "features/test.zip")))
+
+	g.Eq(g.Read("tmp/t/t/test/b.txt").String(), "test test")
 }

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
@@ -141,4 +142,9 @@ func StripFirstDir(dir string) error {
 		}
 	}
 	return nil
+}
+
+func normalizePath(p string) string {
+	p = strings.ReplaceAll(p, "\\", string(filepath.Separator))
+	return strings.ReplaceAll(p, "/", string(filepath.Separator))
 }
