@@ -111,11 +111,23 @@ func StripFirstDir(dir string) error {
 		return err
 	}
 
-	if len(list) != 1 {
-		return fmt.Errorf("expected only one dir in %s", dir)
+	name := ""
+	for _, f := range list {
+		if f.IsDir() {
+			if name != "" {
+				return fmt.Errorf("expected only one dir in %s", dir)
+			}
+
+			name = f.Name()
+			continue
+		}
 	}
 
-	root := filepath.Join(dir, list[0].Name())
+	if name == "" {
+		return fmt.Errorf("no dir found under %s", dir)
+	}
+
+	root := filepath.Join(dir, name)
 
 	children, err := os.ReadDir(root)
 	if err != nil {
