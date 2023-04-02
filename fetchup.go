@@ -48,12 +48,14 @@ func (fu *Fetchup) FastestURL() (fastest string) {
 		go func() {
 			defer wg.Done()
 
-			q, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 			if err != nil {
 				return
 			}
 
-			res, err := fu.HttpClient.Do(q)
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'")
+
+			res, err := fu.HttpClient.Do(req)
 			if err != nil {
 				return
 			}
