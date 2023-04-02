@@ -141,7 +141,8 @@ func StripFirstDir(dir string) error {
 			return err
 		}
 	}
-	return nil
+
+	return os.Remove(root)
 }
 
 func normalizePath(p string) string {
