@@ -71,6 +71,7 @@ func TestNew(t *testing.T) {
 
 	fu := fetchup.New(d, s.URL("/slow/"), u)
 	fu.Logger = logger
+	fu.SpeedPacketSize = 100
 	g.E(fu.Fetch())
 
 	g.Eq(g.Read(filepath.Join(d, "a/t.txt")).Bytes(), data)

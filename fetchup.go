@@ -2,6 +2,7 @@ package fetchup
 
 import (
 	"context"
+	"io"
 	"log"
 	"net/http"
 	"sync"
@@ -9,20 +10,30 @@ import (
 )
 
 type Fetchup struct {
-	To   string
+	// To is the path to save the file.
+	To string
+
+	// URLs is the list of candidates, the fastest one will be used to download the file.
 	URLs []string
 
-	Logger        Logger
+	Logger Logger
+
+	// SpeedPacketSize is the size of the packet used to calculate the download speed.
+	// The size should be much smaller than the whole file size to download.
+	SpeedPacketSize int
+
 	MinReportSpan time.Duration
-	HttpClient    *http.Client
+
+	HttpClient *http.Client
 }
 
 func New(to string, us ...string) *Fetchup {
 	return &Fetchup{
-		To:            to,
-		URLs:          us,
-		Logger:        log.Default(),
-		MinReportSpan: time.Second,
+		To:              to,
+		URLs:            us,
+		Logger:          log.Default(),
+		SpeedPacketSize: 64 * 1024,
+		MinReportSpan:   time.Second,
 		HttpClient: &http.Client{
 			Transport: &UATransport{UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"},
 		},
@@ -60,8 +71,8 @@ func (fu *Fetchup) FastestURL() (fastest string) {
 			defer func() { _ = res.Body.Close() }()
 
 			if res.StatusCode == http.StatusOK {
-				buf := make([]byte, 64*1024) // a TCP packet won't be larger than 64KB
-				_, err = res.Body.Read(buf)
+				buf := make([]byte, fu.SpeedPacketSize)
+				_, err = io.ReadFull(res.Body, buf)
 				if err != nil {
 					return
 				}

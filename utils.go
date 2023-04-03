@@ -1,6 +1,7 @@
 package fetchup
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io"
 	"os"
@@ -129,20 +130,25 @@ func StripFirstDir(dir string) error {
 	}
 
 	root := filepath.Join(dir, name)
+	up := filepath.Join(filepath.Dir(dir))
+	toName := filepath.Base(dir)
 
-	children, err := os.ReadDir(root)
+	b := make([]byte, 8)
+	_, err = rand.Read(b)
 	if err != nil {
 		return err
 	}
+	tmp := filepath.Join(up, fmt.Sprintf("%x", b))
 
-	for _, child := range children {
-		err = os.Rename(filepath.Join(root, child.Name()), filepath.Join(dir, child.Name()))
-		if err != nil {
-			return err
-		}
+	err = os.Rename(root, tmp)
+	if err != nil {
+		return err
 	}
-
-	return os.Remove(root)
+	err = os.RemoveAll(dir)
+	if err != nil {
+		return err
+	}
+	return os.Rename(tmp, filepath.Join(up, toName))
 }
 
 func normalizePath(p string) string {
