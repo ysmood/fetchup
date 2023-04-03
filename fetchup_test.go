@@ -1,6 +1,7 @@
 package fetchup_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -112,4 +113,12 @@ func TestUnZipSymbolLink(t *testing.T) {
 	g.E(fu.UnZip(g.Open(false, "features/test.zip")))
 
 	g.Eq(g.Read("tmp/t/t/test/b.txt").String(), "test test")
+}
+
+func TestURLErr(t *testing.T) {
+	g, s, _ := setup(t)
+
+	fu := fetchup.New(getTmpDir(g), s.URL("/err/"))
+	e := &fetchup.ErrNoURLs{}
+	g.True(errors.As(fu.Fetch(), &e))
 }

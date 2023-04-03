@@ -100,5 +100,9 @@ func setup(t *testing.T) (got.G, *got.Router, []byte) {
 		}
 	})
 
+	s.Mux.HandleFunc("/err/", func(rw http.ResponseWriter, r *http.Request) {
+		rw.WriteHeader(http.StatusInternalServerError)
+	})
+
 	return g, s, data
 }

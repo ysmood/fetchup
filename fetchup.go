@@ -2,6 +2,7 @@ package fetchup
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -42,7 +43,19 @@ func New(to string, us ...string) *Fetchup {
 
 func (fu *Fetchup) Fetch() error {
 	u := fu.FastestURL()
+	if u == "" {
+		return &ErrNoURLs{fu.URLs}
+	}
+
 	return fu.Download(u)
+}
+
+type ErrNoURLs struct {
+	URLs []string
+}
+
+func (e *ErrNoURLs) Error() string {
+	return fmt.Sprintf("Not able to find a valid URL to download %v", e.URLs)
 }
 
 func (fu *Fetchup) FastestURL() (fastest string) {
