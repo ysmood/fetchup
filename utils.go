@@ -60,6 +60,9 @@ func NewProgress(s io.Reader, total int, minSpan time.Duration, logger Logger) *
 
 func (p *progress) Read(b []byte) (n int, err error) {
 	n, err = p.s.Read(b)
+	if err != nil {
+		return
+	}
 
 	p.count += n
 
