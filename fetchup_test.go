@@ -122,3 +122,15 @@ func TestURLErr(t *testing.T) {
 	e := &fetchup.ErrNoURLs{}
 	g.True(errors.As(fu.Fetch(), &e))
 }
+
+func TestGzipHttpBody(t *testing.T) {
+	g, s, data := setup(t)
+
+	p := filepath.Join(getTmpDir(g), "t.out")
+
+	fu := fetchup.New(p, s.URL("/file/"))
+	fu.SpeedPacketSize = 100
+	g.E(fu.Fetch())
+
+	g.Eq(g.Read(p).Bytes(), data)
+}

@@ -36,7 +36,7 @@ func New(to string, us ...string) *Fetchup {
 		SpeedPacketSize: 64 * 1024,
 		MinReportSpan:   time.Second,
 		HttpClient: &http.Client{
-			Transport: &UATransport{UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"},
+			Transport: &DefaultTransport{UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"},
 		},
 	}
 }
@@ -100,15 +100,4 @@ func (fu *Fetchup) FastestURL() (fastest string) {
 	wg.Wait()
 
 	return
-}
-
-type UATransport struct {
-	UA string
-}
-
-var _ http.RoundTripper = (*UATransport)(nil)
-
-func (t *UATransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("User-Agent", t.UA)
-	return http.DefaultTransport.RoundTrip(req)
 }

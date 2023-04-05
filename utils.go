@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -48,8 +49,8 @@ type progress struct {
 
 var _ io.ReadWriter = &progress{}
 
-// NewProgress returns a new progress reader.
-func NewProgress(s io.Reader, total int, minSpan time.Duration, logger Logger) *progress {
+// newProgress returns a new progress reader.
+func newProgress(s io.Reader, total int, minSpan time.Duration, logger Logger) *progress {
 	return &progress{
 		s:       s,
 		total:   total,
@@ -60,14 +61,14 @@ func NewProgress(s io.Reader, total int, minSpan time.Duration, logger Logger) *
 
 func (p *progress) Read(b []byte) (n int, err error) {
 	n, err = p.s.Read(b)
-	if err != nil {
-		return
-	}
 
 	p.count += n
 
-	if p.count == p.total {
-		p.logger.Println(EventProgress, "100%")
+	if err != nil {
+		if p.count == p.total {
+			p.logger.Println(EventProgress, "100%")
+		}
+
 		return
 	}
 
@@ -157,4 +158,17 @@ func StripFirstDir(dir string) error {
 func normalizePath(p string) string {
 	p = strings.ReplaceAll(p, "\\", string(filepath.Separator))
 	return strings.ReplaceAll(p, "/", string(filepath.Separator))
+}
+
+// DefaultTransport is the default http transport for fetchup, it auto handles the gzip and user-agent.
+type DefaultTransport struct {
+	UA string
+}
+
+var _ http.RoundTripper = (*DefaultTransport)(nil)
+
+func (t *DefaultTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	req.Header.Set("User-Agent", t.UA)
+	req.Header.Set("Accept-Encoding", "gzip")
+	return http.DefaultTransport.RoundTrip(req)
 }

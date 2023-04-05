@@ -100,6 +100,17 @@ func setup(t *testing.T) (got.G, *got.Router, []byte) {
 		}
 	})
 
+	s.Mux.HandleFunc("/file/", func(rw http.ResponseWriter, r *http.Request) {
+		buf := bytes.NewBuffer(nil)
+		gz := gzip.NewWriter(buf)
+		g.E(gz.Write(data))
+		g.E(gz.Close())
+
+		rw.Header().Add("Content-Length", fmt.Sprintf("%d", buf.Len()))
+		rw.Header().Add("Content-Encoding", "gzip")
+		g.E(io.Copy(rw, buf))
+	})
+
 	s.Mux.HandleFunc("/err/", func(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 	})

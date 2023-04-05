@@ -9,39 +9,47 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 )
 
-func (fu *Fetchup) Downloader(u string) (io.Reader, func(), error) {
-	fu.Logger.Println(EventDownload, u)
+type Response struct {
+	Req            *http.Request
+	ResHeader      http.Header
+	ProgressedBody io.Reader
+	Close          func()
+}
 
-	q, err := http.NewRequest(http.MethodGet, u, nil)
+func (fu *Fetchup) Request(u string) (*Response, error) {
+	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	res, err := fu.HttpClient.Do(q)
+	res, err := fu.HttpClient.Do(req)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	size, err := strconv.ParseInt(res.Header.Get("Content-Length"), 10, 64)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return NewProgress(res.Body, int(size), fu.MinReportSpan, fu.Logger), func() { _ = res.Body.Close() }, nil
+	return &Response{
+		Req:            req,
+		ResHeader:      res.Header,
+		ProgressedBody: newProgress(res.Body, int(res.ContentLength), fu.MinReportSpan, fu.Logger),
+		Close:          func() { _ = res.Body.Close() },
+	}, nil
 }
 
 func (fu *Fetchup) Download(u string) error {
-	r, close, err := fu.Downloader(u)
+	fu.Logger.Println(EventDownload, u)
+
+	res, err := fu.Request(u)
 	if err != nil {
 		return err
 	}
-	defer close()
+	defer res.Close()
 
-	if strings.HasSuffix(u, ".gz") {
+	r := res.ProgressedBody
+
+	if strings.HasSuffix(u, ".gz") || res.ResHeader.Get("Content-Encoding") == "gzip" {
 		u = strings.TrimSuffix(u, ".gz")
 		r, err = gzip.NewReader(r)
 		if err != nil {
@@ -49,20 +57,29 @@ func (fu *Fetchup) Download(u string) error {
 		}
 	}
 
-	err = os.MkdirAll(fu.To, 0755)
-	if err != nil {
-		return err
-	}
-
 	if strings.HasSuffix(u, ".tar") {
 		err := fu.UnTar(r)
 		if err != nil {
 			return err
 		}
-	}
-
-	if strings.HasSuffix(u, ".zip") {
+	} else if strings.HasSuffix(u, ".zip") {
 		err := fu.UnZip(r)
+		if err != nil {
+			return err
+		}
+	} else {
+		err = os.MkdirAll(filepath.Dir(fu.To), 0755)
+		if err != nil {
+			return err
+		}
+
+		f, err := os.Create(fu.To)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+
+		_, err = io.Copy(f, r)
 		if err != nil {
 			return err
 		}
@@ -94,18 +111,13 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 
 	fu.Logger.Println(EventUnzip, fu.To)
 
-	progress := NewProgress(r, size, fu.MinReportSpan, fu.Logger)
+	progress := newProgress(r, size, fu.MinReportSpan, fu.Logger)
 
 	for _, f := range zr.File {
 		p := filepath.Join(fu.To, normalizePath(f.Name))
 
-		err := os.MkdirAll(filepath.Dir(p), 0755)
-		if err != nil {
-			return err
-		}
-
 		if f.FileInfo().IsDir() {
-			err := os.Mkdir(p, f.Mode())
+			err := os.MkdirAll(p, f.Mode())
 			if err != nil {
 				return err
 			}
@@ -130,6 +142,11 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 			}
 
 			continue
+		}
+
+		err = os.MkdirAll(filepath.Dir(p), 0755)
+		if err != nil {
+			return err
 		}
 
 		dst, err := os.OpenFile(p, os.O_RDWR|os.O_CREATE|os.O_TRUNC, f.Mode())
@@ -167,7 +184,7 @@ func (fu *Fetchup) UnTar(r io.Reader) error {
 		p := filepath.Join(fu.To, hdr.Name)
 
 		if info.IsDir() {
-			err = os.Mkdir(p, info.Mode())
+			err = os.MkdirAll(p, info.Mode())
 			if err != nil {
 				return err
 			}
