@@ -111,6 +111,11 @@ func setup(t *testing.T) (got.G, *got.Router, []byte) {
 		g.E(io.Copy(rw, buf))
 	})
 
+	s.Mux.HandleFunc("/no-content-length/", func(rw http.ResponseWriter, r *http.Request) {
+		rw.WriteHeader(http.StatusOK)
+		g.E(rw.Write(data))
+	})
+
 	s.Mux.HandleFunc("/err/", func(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 	})

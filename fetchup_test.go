@@ -25,7 +25,6 @@ func TestUnTar(t *testing.T) {
 	g.Eq(g.Read(filepath.Join(d, "a", "t.txt")).Bytes(), data)
 	g.Eq(logger.buf, g.Render(`Download: {{.U}}
 Progress: 19%
-Progress: 100%
 Downloaded: {{.D}}
 `, struct {
 		U string
@@ -51,10 +50,9 @@ Progress: 10%
 Progress: 19%
 Progress: 40%
 Progress: 80%
-Progress: 100%
 Unzip: {{.D}}
-99%
-100%
+Progress: 99%
+Progress: 100%
 Downloaded: {{.D}}
 `, struct {
 		U string
@@ -78,7 +76,6 @@ func TestNew(t *testing.T) {
 	g.Eq(g.Read(filepath.Join(d, "a/t.txt")).Bytes(), data)
 	g.Eq(logger.buf, g.Render(`Download: {{.U}}
 Progress: 19%
-Progress: 100%
 Downloaded: {{.D}}
 `, struct {
 		U string
@@ -129,6 +126,18 @@ func TestGzipHttpBody(t *testing.T) {
 	p := filepath.Join(getTmpDir(g), "t.out")
 
 	fu := fetchup.New(p, s.URL("/file/"))
+	fu.SpeedPacketSize = 100
+	g.E(fu.Fetch())
+
+	g.Eq(g.Read(p).Bytes(), data)
+}
+
+func TestNoContentLength(t *testing.T) {
+	g, s, data := setup(t)
+
+	p := filepath.Join(getTmpDir(g), "t.out")
+
+	fu := fetchup.New(p, s.URL("/no-content-length/"))
 	fu.SpeedPacketSize = 100
 	g.E(fu.Fetch())
 

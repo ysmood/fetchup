@@ -65,10 +65,6 @@ func (p *progress) Read(b []byte) (n int, err error) {
 	p.count += n
 
 	if err != nil {
-		if p.count == p.total {
-			p.logger.Println(EventProgress, "100%")
-		}
-
 		return
 	}
 
@@ -77,7 +73,7 @@ func (p *progress) Read(b []byte) (n int, err error) {
 	}
 
 	p.last = time.Now()
-	p.logger.Println(EventProgress, fmt.Sprintf("%02d%%", p.count*100/p.total))
+	p.report()
 
 	return
 }
@@ -87,19 +83,24 @@ func (p *progress) Write(b []byte) (n int, err error) {
 
 	p.count += n
 
-	if p.count == p.total {
-		p.logger.Println("100%")
-		return
-	}
-
 	if time.Since(p.last) < p.minSpan {
 		return
 	}
 
 	p.last = time.Now()
-	p.logger.Println(fmt.Sprintf("%02d%%", p.count*100/p.total))
+	p.report()
 
 	return
+}
+
+func (p *progress) report() {
+	out := ""
+	if p.total > 0 {
+		out = fmt.Sprintf("%02d%%", p.count*100/p.total)
+	} else {
+		out = fmt.Sprintf("%.3fMB", float64(p.count)/1024/1024)
+	}
+	p.logger.Println(EventProgress, out)
 }
 
 func CacheDir() string {
