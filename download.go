@@ -192,6 +192,11 @@ func (fu *Fetchup) UnTar(r io.Reader) error {
 			continue
 		}
 
+		err = os.MkdirAll(filepath.Dir(p), 0755)
+		if err != nil {
+			return err
+		}
+
 		if hdr.Linkname != "" {
 			err = os.Symlink(hdr.Linkname, p)
 			if err != nil {
