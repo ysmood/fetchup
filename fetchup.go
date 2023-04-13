@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -32,7 +33,7 @@ func New(to string, us ...string) *Fetchup {
 	return &Fetchup{
 		To:              to,
 		URLs:            us,
-		Logger:          log.Default(),
+		Logger:          log.New(os.Stderr, "", log.LstdFlags),
 		SpeedPacketSize: 64 * 1024,
 		MinReportSpan:   time.Second,
 		HttpClient: &http.Client{

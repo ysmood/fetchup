@@ -129,7 +129,7 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 			return err
 		}
 
-		if f.FileInfo().Mode().Type() == os.ModeSymlink {
+		if f.FileInfo().Mode()&os.ModeSymlink == os.ModeSymlink {
 			buf := bytes.NewBuffer(nil)
 			_, err = io.Copy(io.MultiWriter(buf, progress), r)
 			if err != nil {

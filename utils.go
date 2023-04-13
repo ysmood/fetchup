@@ -113,7 +113,12 @@ func CacheDir() string {
 
 // StripFirstDir removes the first dir but keep all its children.
 func StripFirstDir(dir string) error {
-	list, err := os.ReadDir(dir)
+	dirFile, err := os.Open(dir)
+	if err != nil {
+		return err
+	}
+
+	list, err := dirFile.Readdir(0)
 	if err != nil {
 		return err
 	}
