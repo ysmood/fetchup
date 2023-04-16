@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/ysmood/fetchup"
@@ -87,6 +88,10 @@ Downloaded: {{.D}}
 }
 
 func TestUnTarSymbolLink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip()
+	}
+
 	g := got.T(t)
 
 	p := filepath.FromSlash("tmp/t/t")
@@ -96,12 +101,16 @@ func TestUnTarSymbolLink(t *testing.T) {
 
 	fu := fetchup.New(p, "")
 
-	g.E(fu.UnTar(g.Open(false, filepath.FromSlash("features/test.tar"))))
+	g.E(fu.UnTar(g.Open(false, filepath.FromSlash("fixtures/test.tar"))))
 
 	g.Eq(g.Read(filepath.FromSlash("tmp/t/t/test/b.txt")).String(), "test test")
 }
 
 func TestUnZipSymbolLink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip()
+	}
+
 	g := got.T(t)
 
 	p := filepath.FromSlash("tmp/t/t")
@@ -111,7 +120,7 @@ func TestUnZipSymbolLink(t *testing.T) {
 
 	fu := fetchup.New(p, "")
 
-	g.E(fu.UnZip(g.Open(false, filepath.FromSlash("features/test.zip"))))
+	g.E(fu.UnZip(g.Open(false, filepath.FromSlash("fixtures/test.zip"))))
 
 	g.Eq(g.Read(filepath.FromSlash("tmp/t/t/test/b.txt")).String(), "test test")
 }
