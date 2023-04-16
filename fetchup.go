@@ -12,6 +12,8 @@ import (
 )
 
 type Fetchup struct {
+	Ctx context.Context
+
 	// To is the path to save the file.
 	To string
 
@@ -31,6 +33,7 @@ type Fetchup struct {
 
 func New(to string, us ...string) *Fetchup {
 	return &Fetchup{
+		Ctx:             context.Background(),
 		To:              to,
 		URLs:            us,
 		Logger:          log.New(os.Stderr, "", log.LstdFlags),
@@ -61,7 +64,7 @@ func (e *ErrNoURLs) Error() string {
 
 func (fu *Fetchup) FastestURL() (fastest string) {
 	setURL := sync.Once{}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(fu.Ctx)
 	defer cancel()
 
 	wg := sync.WaitGroup{}

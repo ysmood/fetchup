@@ -143,3 +143,20 @@ func TestNoContentLength(t *testing.T) {
 
 	g.Eq(g.Read(p).Bytes(), data)
 }
+
+func TestContext(t *testing.T) {
+	g, s, _ := setup(t)
+
+	p := getTmpDir(g)
+
+	ctx := g.Context()
+	ctx.Cancel()
+
+	fu := fetchup.New(p, s.URL("/slow/"))
+	fu.Ctx = ctx
+	g.Err(fu.Fetch())
+
+	fu = fetchup.New(p, s.URL("/slow/"))
+	fu.Ctx = ctx
+	g.Err(fu.Download(s.URL("/slow/")))
+}

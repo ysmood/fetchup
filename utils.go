@@ -1,6 +1,7 @@
 package fetchup
 
 import (
+	"context"
 	"crypto/rand"
 	"fmt"
 	"io"
@@ -39,6 +40,7 @@ func MultiLogger(list ...Logger) Log {
 }
 
 type progress struct {
+	ctx     context.Context
 	s       io.Reader
 	total   int
 	count   int
@@ -50,8 +52,9 @@ type progress struct {
 var _ io.ReadWriter = &progress{}
 
 // newProgress returns a new progress reader.
-func newProgress(s io.Reader, total int, minSpan time.Duration, logger Logger) *progress {
+func newProgress(ctx context.Context, s io.Reader, total int, minSpan time.Duration, logger Logger) *progress {
 	return &progress{
+		ctx:     ctx,
 		s:       s,
 		total:   total,
 		logger:  logger,
@@ -60,6 +63,10 @@ func newProgress(s io.Reader, total int, minSpan time.Duration, logger Logger) *
 }
 
 func (p *progress) Read(b []byte) (n int, err error) {
+	if p.ctx.Err() != nil {
+		return 0, p.ctx.Err()
+	}
+
 	n, err = p.s.Read(b)
 
 	p.count += n
@@ -79,6 +86,10 @@ func (p *progress) Read(b []byte) (n int, err error) {
 }
 
 func (p *progress) Write(b []byte) (n int, err error) {
+	if p.ctx.Err() != nil {
+		return len(b), p.ctx.Err()
+	}
+
 	n = len(b)
 
 	p.count += n

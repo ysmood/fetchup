@@ -20,7 +20,7 @@ type Response struct {
 }
 
 func (fu *Fetchup) Request(u string) (*Response, error) {
-	req, err := http.NewRequest(http.MethodGet, u, nil)
+	req, err := http.NewRequestWithContext(fu.Ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (fu *Fetchup) Request(u string) (*Response, error) {
 	return &Response{
 		Req:            req,
 		ResHeader:      res.Header,
-		ProgressedBody: newProgress(res.Body, int(res.ContentLength), fu.MinReportSpan, fu.Logger),
+		ProgressedBody: newProgress(fu.Ctx, res.Body, int(res.ContentLength), fu.MinReportSpan, fu.Logger),
 		Close:          func() { _ = res.Body.Close() },
 	}, nil
 }
@@ -111,7 +111,7 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 
 	fu.Logger.Println(EventUnzip, fu.To)
 
-	progress := newProgress(r, size, fu.MinReportSpan, fu.Logger)
+	progress := newProgress(fu.Ctx, r, size, fu.MinReportSpan, fu.Logger)
 
 	for _, f := range zr.File {
 		p := filepath.Join(fu.To, normalizePath(f.Name))
@@ -172,6 +172,10 @@ func (fu *Fetchup) UnTar(r io.Reader) error {
 	tr := tar.NewReader(r)
 
 	for {
+		if fu.Ctx.Err() != nil {
+			return fu.Ctx.Err()
+		}
+
 		hdr, err := tr.Next()
 		if err == io.EOF {
 			break // End of archive
