@@ -89,27 +89,31 @@ Downloaded: {{.D}}
 func TestUnTarSymbolLink(t *testing.T) {
 	g := got.T(t)
 
-	g.E(os.RemoveAll("tmp/t/t"))
-	g.E(os.MkdirAll("tmp/t/t", 0755))
+	p := filepath.FromSlash("tmp/t/t")
 
-	fu := fetchup.New("tmp/t/t", "")
+	g.E(os.RemoveAll(p))
+	g.E(os.MkdirAll(p, 0755))
 
-	g.E(fu.UnTar(g.Open(false, "features/test.tar")))
+	fu := fetchup.New(p, "")
 
-	g.Eq(g.Read("tmp/t/t/test/b.txt").String(), "test test")
+	g.E(fu.UnTar(g.Open(false, filepath.FromSlash("features/test.tar"))))
+
+	g.Eq(g.Read(filepath.FromSlash("tmp/t/t/test/b.txt")).String(), "test test")
 }
 
 func TestUnZipSymbolLink(t *testing.T) {
 	g := got.T(t)
 
-	g.E(os.RemoveAll("tmp/t/t"))
-	g.E(os.MkdirAll("tmp/t/t", 0755))
+	p := filepath.FromSlash("tmp/t/t")
 
-	fu := fetchup.New("tmp/t/t", "")
+	g.E(os.RemoveAll(p))
+	g.E(os.MkdirAll(p, 0755))
 
-	g.E(fu.UnZip(g.Open(false, "features/test.zip")))
+	fu := fetchup.New(p, "")
 
-	g.Eq(g.Read("tmp/t/t/test/b.txt").String(), "test test")
+	g.E(fu.UnZip(g.Open(false, filepath.FromSlash("features/test.zip"))))
+
+	g.Eq(g.Read(filepath.FromSlash("tmp/t/t/test/b.txt")).String(), "test test")
 }
 
 func TestURLErr(t *testing.T) {
