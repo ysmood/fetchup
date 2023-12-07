@@ -2,6 +2,8 @@ package fetchup_test
 
 import (
 	"errors"
+	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -119,6 +121,7 @@ func TestUnZipSymbolLink(t *testing.T) {
 	g.E(os.MkdirAll(p, 0755))
 
 	fu := fetchup.New(p, "")
+	fu.Logger = log.New(io.Discard, "", 0)
 
 	g.E(fu.UnZip(g.Open(false, filepath.FromSlash("fixtures/test.zip"))))
 
@@ -139,6 +142,7 @@ func TestGzipHttpBody(t *testing.T) {
 	p := filepath.Join(getTmpDir(g), "t.out")
 
 	fu := fetchup.New(p, s.URL("/file/"))
+	fu.Logger = log.New(io.Discard, "", 0)
 	fu.SpeedPacketSize = 100
 	g.E(fu.Fetch())
 
@@ -151,6 +155,7 @@ func TestNoContentLength(t *testing.T) {
 	p := filepath.Join(getTmpDir(g), "t.out")
 
 	fu := fetchup.New(p, s.URL("/no-content-length/"))
+	fu.Logger = log.New(io.Discard, "", 0)
 	fu.SpeedPacketSize = 100
 	g.E(fu.Fetch())
 
@@ -166,10 +171,12 @@ func TestContext(t *testing.T) {
 	ctx.Cancel()
 
 	fu := fetchup.New(p, s.URL("/slow/"))
+	fu.Logger = log.New(io.Discard, "", 0)
 	fu.Ctx = ctx
 	g.Err(fu.Fetch())
 
 	fu = fetchup.New(p, s.URL("/slow/"))
+	fu.Logger = log.New(io.Discard, "", 0)
 	fu.Ctx = ctx
 	g.Err(fu.Download(s.URL("/slow/")))
 }
