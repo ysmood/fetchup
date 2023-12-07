@@ -1,4 +1,4 @@
-github.com/ysmood/gop v0.0.2 h1:VuWweTmXK+zedLqYufJdh3PlxDNBOfFHjIZlPT2T5nw=
-github.com/ysmood/gop v0.0.2/go.mod h1:rr5z2z27oGEbyB787hpEcx4ab8cCiPnKxn0SUHt6xzk=
-github.com/ysmood/got v0.34.1 h1:IrV2uWLs45VXNvZqhJ6g2nIhY+pgIG1CUoOcqfXFl1s=
-github.com/ysmood/got v0.34.1/go.mod h1:yddyjq/PmAf08RMLSwDjPyCvHvYed+WjHnQxpH851LM=
+github.com/ysmood/gop v0.2.0 h1:+tFrG0TWPxT6p9ZaZs+VY+opCvHU8/3Fk6BaNv6kqKg=
+github.com/ysmood/gop v0.2.0/go.mod h1:rr5z2z27oGEbyB787hpEcx4ab8cCiPnKxn0SUHt6xzk=
+github.com/ysmood/got v0.38.2 h1:h2RYvAe5nIK+oBRMLzNIrkZaX5kjmkOBqfRMIsFzLyU=
+github.com/ysmood/got v0.38.2/go.mod h1:W7DdpuX6skL3NszLmAsC5hT7JAhuLZhByVzHTq874Qg=
