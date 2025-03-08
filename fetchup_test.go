@@ -47,12 +47,7 @@ func TestZip(t *testing.T) {
 	g.E(fu.Download(u))
 	g.Eq(g.Read(filepath.Join(d, "to", "file.txt")).Bytes(), data)
 	g.Eq(logger.buf, g.Render(`Download: {{.U}}
-Progress: 02%
-Progress: 05%
-Progress: 10%
 Progress: 19%
-Progress: 40%
-Progress: 80%
 Unzip: {{.D}}
 Progress: 99%
 Progress: 100%

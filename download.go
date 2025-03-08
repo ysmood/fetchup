@@ -91,15 +91,20 @@ func (fu *Fetchup) Download(u string) error {
 }
 
 func (fu *Fetchup) UnZip(r io.Reader) error {
-	// Because zip format does not streaming, we need to read the whole file into memory.
-	buf := bytes.NewBuffer(nil)
+	// Because zip format does not streaming, we need to download to a temp file
+	f, err := os.CreateTemp("", "fetchup")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
 
-	_, err := io.Copy(buf, r)
+	n, err := io.Copy(f, r)
 	if err != nil {
 		return err
 	}
 
-	zr, err := zip.NewReader(bytes.NewReader(buf.Bytes()), int64(buf.Len()))
+	zr, err := zip.NewReader(f, n)
 	if err != nil {
 		return err
 	}
@@ -111,7 +116,7 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 
 	fu.Logger.Println(EventUnzip, fu.To)
 
-	progress := newProgress(fu.Ctx, r, size, fu.MinReportSpan, fu.Logger)
+	progress := newProgress(fu.Ctx, nil, size, fu.MinReportSpan, fu.Logger)
 
 	for _, f := range zr.File {
 		p := filepath.Join(fu.To, normalizePath(f.Name))
