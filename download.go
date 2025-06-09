@@ -68,12 +68,12 @@ func (fu *Fetchup) Download(u string) error {
 			return err
 		}
 	} else {
-		err = os.MkdirAll(filepath.Dir(fu.To), 0755)
+		err = os.MkdirAll(filepath.Dir(fu.SaveTo), 0755)
 		if err != nil {
 			return err
 		}
 
-		f, err := os.Create(fu.To)
+		f, err := os.Create(fu.SaveTo)
 		if err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ func (fu *Fetchup) Download(u string) error {
 		}
 	}
 
-	fu.Logger.Println(EventDownloaded, fu.To)
+	fu.Logger.Println(EventDownloaded, fu.SaveTo)
 
 	return nil
 }
@@ -114,12 +114,12 @@ func (fu *Fetchup) UnZip(r io.Reader) error {
 		size += int(f.UncompressedSize64)
 	}
 
-	fu.Logger.Println(EventUnzip, fu.To)
+	fu.Logger.Println(EventUnzip, fu.SaveTo)
 
 	progress := newProgress(fu.Ctx, nil, size, fu.MinReportSpan, fu.Logger)
 
 	for _, f := range zr.File {
-		p := filepath.Join(fu.To, normalizePath(f.Name))
+		p := filepath.Join(fu.SaveTo, normalizePath(f.Name))
 
 		if f.FileInfo().IsDir() {
 			err := os.MkdirAll(p, f.Mode())
@@ -190,7 +190,7 @@ func (fu *Fetchup) UnTar(r io.Reader) error {
 		}
 
 		info := hdr.FileInfo()
-		p := filepath.Join(fu.To, hdr.Name)
+		p := filepath.Join(fu.SaveTo, hdr.Name)
 
 		if info.IsDir() {
 			err = os.MkdirAll(p, info.Mode())

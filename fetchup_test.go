@@ -19,20 +19,21 @@ func TestUnTar(t *testing.T) {
 	logger := &bufLogger{}
 
 	u := s.URL("/tar-gz/t.tar.gz")
-	d := getTmpDir(g)
 
-	fu := fetchup.New(d)
+	fu := fetchup.New()
+	defer func() { g.E(os.RemoveAll(fu.SaveTo)) }()
+
 	fu.Logger = logger
 	g.E(fu.Download(u))
 
-	g.Eq(g.Read(filepath.Join(d, "a", "t.txt")).Bytes(), data)
+	g.Eq(g.Read(filepath.Join(fu.SaveTo, "a", "t.txt")).Bytes(), data)
 	g.Eq(logger.buf, g.Render(`Download: {{.U}}
 Progress: 19%
 Downloaded: {{.D}}
 `, struct {
 		U string
 		D string
-	}{u, d}).String())
+	}{u, fu.SaveTo}).String())
 }
 
 func TestZip(t *testing.T) {
@@ -41,7 +42,7 @@ func TestZip(t *testing.T) {
 	logger := &bufLogger{}
 	u := s.URL("/zip/t.zip")
 	d := getTmpDir(g)
-	fu := fetchup.New(d)
+	fu := fetchup.New().WithSaveTo(d)
 	fu.Logger = logger
 	fu.MinReportSpan = 0
 	g.E(fu.Download(u))
@@ -66,7 +67,7 @@ func TestNew(t *testing.T) {
 	u := s.URL("/tar-gz/t.tar.gz")
 	d := getTmpDir(g)
 
-	fu := fetchup.New(d, s.URL("/slow/"), u)
+	fu := fetchup.New(s.URL("/slow/"), u).WithSaveTo(d)
 	fu.Logger = logger
 	fu.SpeedPacketSize = 100
 	g.E(fu.Fetch())
@@ -96,7 +97,7 @@ func TestUnTarSymbolLink(t *testing.T) {
 	g.E(os.RemoveAll(p))
 	g.E(os.MkdirAll(p, 0755))
 
-	fu := fetchup.New(p, "")
+	fu := fetchup.New("").WithSaveTo(p)
 
 	g.E(fu.UnTar(g.Open(false, filepath.FromSlash("fixtures/test.tar"))))
 
@@ -115,7 +116,7 @@ func TestUnZipSymbolLink(t *testing.T) {
 	g.E(os.RemoveAll(p))
 	g.E(os.MkdirAll(p, 0755))
 
-	fu := fetchup.New(p, "")
+	fu := fetchup.New("").WithSaveTo(p)
 	fu.Logger = log.New(io.Discard, "", 0)
 
 	g.E(fu.UnZip(g.Open(false, filepath.FromSlash("fixtures/test.zip"))))
@@ -126,7 +127,7 @@ func TestUnZipSymbolLink(t *testing.T) {
 func TestURLErr(t *testing.T) {
 	g, s, _ := setup(t)
 
-	fu := fetchup.New(getTmpDir(g), s.URL("/err/"))
+	fu := fetchup.New(s.URL("/err/")).WithSaveTo(getTmpDir(g))
 	e := &fetchup.ErrNoURLs{}
 	g.True(errors.As(fu.Fetch(), &e))
 }
@@ -136,7 +137,7 @@ func TestGzipHttpBody(t *testing.T) {
 
 	p := filepath.Join(getTmpDir(g), "t.out")
 
-	fu := fetchup.New(p, s.URL("/file/"))
+	fu := fetchup.New(s.URL("/file/")).WithSaveTo(p)
 	fu.Logger = log.New(io.Discard, "", 0)
 	fu.SpeedPacketSize = 100
 	g.E(fu.Fetch())
@@ -149,7 +150,7 @@ func TestNoContentLength(t *testing.T) {
 
 	p := filepath.Join(getTmpDir(g), "t.out")
 
-	fu := fetchup.New(p, s.URL("/no-content-length/"))
+	fu := fetchup.New(s.URL("/no-content-length/")).WithSaveTo(p)
 	fu.Logger = log.New(io.Discard, "", 0)
 	fu.SpeedPacketSize = 100
 	g.E(fu.Fetch())
@@ -165,12 +166,12 @@ func TestContext(t *testing.T) {
 	ctx := g.Context()
 	ctx.Cancel()
 
-	fu := fetchup.New(p, s.URL("/slow/"))
+	fu := fetchup.New(s.URL("/slow/")).WithSaveTo(p)
 	fu.Logger = log.New(io.Discard, "", 0)
 	fu.Ctx = ctx
 	g.Err(fu.Fetch())
 
-	fu = fetchup.New(p, s.URL("/slow/"))
+	fu = fetchup.New(s.URL("/slow/")).WithSaveTo(p)
 	fu.Logger = log.New(io.Discard, "", 0)
 	fu.Ctx = ctx
 	g.Err(fu.Download(s.URL("/slow/")))

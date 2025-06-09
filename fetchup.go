@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
@@ -14,8 +15,8 @@ import (
 type Fetchup struct {
 	Ctx context.Context
 
-	// To is the path to save the file.
-	To string
+	// SaveTo is the path to save the file.
+	SaveTo string
 
 	// URLs is the list of candidates, the fastest one will be used to download the file.
 	URLs []string
@@ -31,10 +32,10 @@ type Fetchup struct {
 	HttpClient *http.Client
 }
 
-func New(to string, us ...string) *Fetchup {
+func New(us ...string) *Fetchup {
 	return &Fetchup{
 		Ctx:             context.Background(),
-		To:              to,
+		SaveTo:          filepath.Join(os.TempDir(), "fetchup", randStr(16)),
 		URLs:            us,
 		Logger:          log.New(os.Stderr, "", log.LstdFlags),
 		SpeedPacketSize: 64 * 1024,
@@ -43,6 +44,12 @@ func New(to string, us ...string) *Fetchup {
 			Transport: &DefaultTransport{UA: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36"},
 		},
 	}
+}
+
+func (fu *Fetchup) WithSaveTo(to string) *Fetchup {
+	n := *fu
+	n.SaveTo = to
+	return &n
 }
 
 func (fu *Fetchup) Fetch() error {

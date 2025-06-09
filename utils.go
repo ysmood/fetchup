@@ -149,12 +149,7 @@ func StripFirstDir(dir string) error {
 	up := filepath.Join(filepath.Dir(dir))
 	toName := filepath.Base(dir)
 
-	b := make([]byte, 8)
-	_, err = rand.Read(b)
-	if err != nil {
-		return err
-	}
-	tmp := filepath.Join(up, fmt.Sprintf("%x", b))
+	tmp := filepath.Join(up, randStr(16))
 
 	err = os.Rename(root, tmp)
 	if err != nil {
@@ -198,4 +193,14 @@ func (t *DefaultTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 	req.Header.Set("User-Agent", t.UA)
 	req.Header.Set("Accept-Encoding", "gzip")
 	return http.DefaultTransport.RoundTrip(req)
+}
+
+func randStr(n int) string {
+	b := make([]byte, n)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(err)
+	}
+
+	return fmt.Sprintf("%x", b)
 }
