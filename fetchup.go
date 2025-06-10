@@ -46,9 +46,21 @@ func New(us ...string) *Fetchup {
 	}
 }
 
+func (fu *Fetchup) WithContext(ctx context.Context) *Fetchup {
+	n := *fu
+	n.Ctx = ctx
+	return &n
+}
+
 func (fu *Fetchup) WithSaveTo(to string) *Fetchup {
 	n := *fu
 	n.SaveTo = to
+	return &n
+}
+
+func (fu *Fetchup) WithLogger(logger Logger) *Fetchup {
+	n := *fu
+	n.Logger = logger
 	return &n
 }
 

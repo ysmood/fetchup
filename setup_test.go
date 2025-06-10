@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -121,4 +122,12 @@ func setup(t *testing.T) (got.G, *got.Router, []byte) {
 	})
 
 	return g, s, data
+}
+
+func shellExec(cmd string) string {
+	out, err := exec.Command("sh", "-c", cmd).CombinedOutput()
+	if err != nil {
+		panic(fmt.Sprintf("failed to execute command %q: %v", cmd, err))
+	}
+	return string(out)
 }

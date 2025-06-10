@@ -20,10 +20,9 @@ func TestUnTar(t *testing.T) {
 
 	u := s.URL("/tar-gz/t.tar.gz")
 
-	fu := fetchup.New()
+	fu := fetchup.New().WithLogger(logger)
 	defer func() { g.E(os.RemoveAll(fu.SaveTo)) }()
 
-	fu.Logger = logger
 	g.E(fu.Download(u))
 
 	g.Eq(g.Read(filepath.Join(fu.SaveTo, "a", "t.txt")).Bytes(), data)
