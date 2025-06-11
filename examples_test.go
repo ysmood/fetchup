@@ -2,12 +2,15 @@ package fetchup_test
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/ysmood/fetchup/pkg/golang_migrate"
 	"github.com/ysmood/fetchup/pkg/golangci_lint"
 )
 
 func Example_install_golangci_lint() {
+	os.Setenv("GOBIN", "./bin")
+
 	err := golangci_lint.Install()
 	if err != nil {
 		panic(err)
@@ -20,6 +23,8 @@ func Example_install_golangci_lint() {
 }
 
 func Example_install_golang_migrate() {
+	os.Setenv("GOBIN", "./bin")
+
 	err := golang_migrate.Install()
 	if err != nil {
 		panic(err)

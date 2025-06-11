@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"go/build"
 	"log"
 	"os"
 	"path/filepath"
@@ -18,6 +19,7 @@ type Options struct {
 	Logger fetchup.Logger
 
 	// InstallToDir is the directory to install the binary to.
+	// It's default to $GOBIN or $GOPATH/bin.
 	InstallToDir string
 
 	// Version is a shortcut to set Version argument in the TemplateArgs.
@@ -40,23 +42,17 @@ type Options struct {
 	TemplateArgs map[string]any
 }
 
-var DefaultOptions = Options{
-	Ctx:          context.Background(),
-	InstallToDir: "./bin",
-	Logger:       log.New(os.Stderr, "", log.LstdFlags),
-}
-
 func Defaults(opts Options) Options {
 	if opts.Ctx == nil {
-		opts.Ctx = DefaultOptions.Ctx
+		opts.Ctx = context.Background()
 	}
 
 	if opts.InstallToDir == "" {
-		opts.InstallToDir = DefaultOptions.InstallToDir
+		opts.InstallToDir = gobin()
 	}
 
 	if opts.Logger == nil {
-		opts.Logger = DefaultOptions.Logger
+		opts.Logger = log.New(os.Stderr, "", log.LstdFlags)
 	}
 
 	if opts.TemplateArgs == nil {
@@ -193,4 +189,13 @@ func stripExt(name string) string {
 		return name[:len(name)-len(ext)]
 	}
 	return name
+}
+
+func gobin() string {
+	dir := os.Getenv("GOBIN")
+	if dir == "" {
+		dir = filepath.Join(build.Default.GOPATH, "bin")
+	}
+
+	return dir
 }
