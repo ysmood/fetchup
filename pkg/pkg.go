@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"text/template"
 
 	"github.com/ysmood/fetchup"
@@ -99,6 +100,13 @@ func InstallWithOptions(opts Options) error {
 		}
 	}
 
+	installTo := filepath.Join(opts.InstallToDir, exeName)
+
+	if execExists(installTo) {
+		opts.Logger.Println("executable already exists at " + installTo + ", skipping installation")
+		return nil
+	}
+
 	f := fetchup.New(urls...).WithContext(opts.Ctx).WithLogger(opts.Logger)
 	f = f.WithSaveTo(f.SaveTo + "-" + stripExt(exeName))
 
@@ -116,7 +124,7 @@ func InstallWithOptions(opts Options) error {
 		return fmt.Errorf("failed to create directory %s: %w", opts.InstallToDir, err)
 	}
 
-	err = os.Rename(bin, filepath.Join(opts.InstallToDir, exeName))
+	err = os.Rename(bin, installTo)
 	if err != nil {
 		return fmt.Errorf("failed to move binary to %s: %w", opts.InstallToDir, err)
 	}
@@ -198,4 +206,23 @@ func gobin() string {
 	}
 
 	return dir
+}
+
+func execExists(path string) bool {
+	stat, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	if stat.IsDir() {
+		return false // It's a directory, not a file
+	}
+
+	if runtime.GOOS == "windows" {
+		ext := strings.ToLower(filepath.Ext(path))
+		return ext == ".exe"
+	}
+
+	// Unix-like: check executable bit
+	return (stat.Mode() & 0111) != 0
 }
