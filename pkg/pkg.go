@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"go/build"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -22,6 +23,12 @@ type Options struct {
 	// InstallToDir is the directory to install the binary to.
 	// It's default to $GOBIN or $GOPATH/bin.
 	InstallToDir string
+
+	// Custom function to check if the executable already exists.
+	// path is the full path to the executable.
+	// If it returns false, the path will be replaced with the installation.
+	// You can use it to check if the desired version already installed.
+	Exists func(path string) bool
 
 	// Version is a shortcut to set Version argument in the TemplateArgs.
 	Version string
@@ -50,6 +57,10 @@ func Defaults(opts Options) Options {
 
 	if opts.InstallToDir == "" {
 		opts.InstallToDir = gobin()
+	}
+
+	if opts.Exists == nil {
+		opts.Exists = ExecExists
 	}
 
 	if opts.Logger == nil {
@@ -102,7 +113,7 @@ func InstallWithOptions(opts Options) error {
 
 	installTo := filepath.Join(opts.InstallToDir, exeName)
 
-	if execExists(installTo) {
+	if opts.Exists(installTo) {
 		opts.Logger.Println("executable already exists at " + installTo + ", skipping installation")
 		return nil
 	}
@@ -124,9 +135,47 @@ func InstallWithOptions(opts Options) error {
 		return fmt.Errorf("failed to create directory %s: %w", opts.InstallToDir, err)
 	}
 
-	err = os.Rename(bin, installTo)
+	err = copyAndRemoveBinary(bin, installTo)
 	if err != nil {
-		return fmt.Errorf("failed to move binary to %s: %w", opts.InstallToDir, err)
+		return err
+	}
+
+	return nil
+}
+
+// copyAndRemoveBinary copies a binary file from src to dst, makes it executable, and removes the source file.
+// Cross-device rename might fail, so we do a copy and remove instead.
+func copyAndRemoveBinary(src, dst string) error {
+	// Copy the binary to the install location
+	srcFile, err := os.Open(src)
+	if err != nil {
+		return fmt.Errorf("failed to open source binary: %w", err)
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(dst)
+	if err != nil {
+		return fmt.Errorf("failed to create destination binary: %w", err)
+	}
+	defer dstFile.Close()
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		return fmt.Errorf("failed to copy binary: %w", err)
+	}
+
+	// Make the binary executable
+	err = os.Chmod(dst, 0755)
+	if err != nil {
+		return fmt.Errorf("failed to make binary executable: %w", err)
+	}
+
+	_ = srcFile.Close()
+
+	// Remove the source binary
+	err = os.Remove(src)
+	if err != nil {
+		return fmt.Errorf("failed to remove source binary: %w", err)
 	}
 
 	return nil
@@ -208,7 +257,7 @@ func gobin() string {
 	return dir
 }
 
-func execExists(path string) bool {
+func ExecExists(path string) bool {
 	stat, err := os.Stat(path)
 	if err != nil {
 		return false

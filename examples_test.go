@@ -9,21 +9,21 @@ import (
 )
 
 func Example_install_golangci_lint() {
-	os.Setenv("GOBIN", "./bin")
+	os.Setenv("GOBIN", "bin")
 
 	err := golangci_lint.Install()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Print(shellExec("./bin/golangci-lint version"))
+	fmt.Print(shellExec("./bin/golangci-lint version --short"))
 
 	// Output:
-	// golangci-lint has version 2.1.6 built with go1.24.2 from eabc2638 on 2025-05-04T15:41:19Z
+	// 2.5.0
 }
 
 func Example_install_golang_migrate() {
-	os.Setenv("GOBIN", "./bin")
+	os.Setenv("GOBIN", "bin")
 
 	err := golang_migrate.Install()
 	if err != nil {
@@ -33,5 +33,5 @@ func Example_install_golang_migrate() {
 	fmt.Print(shellExec("./bin/migrate -version"))
 
 	// Output:
-	// 4.18.3
+	// 4.19.0
 }
